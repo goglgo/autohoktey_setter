@@ -1,0 +1,9 @@
+WEll IL WUle UII DPECIIIEU dlEdb Ul UIE .‘JUIEEII, bU PIUUdUly IIUL UIE UEbL IUI LJUIIVEI Llllg WllUlE UUL'UHIEIID.
+On a slightly different note, you can save the output to a file by specifying the output file name as the last argument to the run comm
+i.e.
+
+Code: [Select all] [Download]
+
+Runl-Jait, C:\Users\Nic\Documents\Mine\lPORTABLES\Capture2Text\Capture2Text.exe %x_star‘t% %y_star‘t$6 %x_end%
+nlrrplrr +v+
+

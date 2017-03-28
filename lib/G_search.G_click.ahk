@@ -1,0 +1,357 @@
+﻿;;;;;;; 비활성 이미지 서칭 함수
+
+#include <gdip_imagesearch> ;.ahk ;이게 핵심이죠 핵심
+#include <gdip_v2> ;.ahk ;어쩌다 v2 있길래 쓰긴 쓰는데, 뭐가 달라졌는지는 모르겠네요.
+
+
+
+;~ Gsearch("x.png",vx,vy)
+;~ 로 사용하고 이미지를 찾을 경우 true값을 반환하며 vx와 vy에 해당 좌표를 저장합니다.
+;~ 실패할 경우 false값을 반환하며, true와 false는 화면 체크 등에 유용하게 쓰입니다.
+;~ if(gsearch("a.png",vx,vy) = true and gsearch("a.png",vx,vy) = false or gsearch("c.png",vx,vy)=true)
+;~ 이런식으로 조건문을 달 수 있는거죠.
+
+
+;~ Gclick("x.png")로 사용하고 그냥 클릭하는 기능입니다. 
+;~ 물론 vx와 vy를 global 선언(보통은 없어지지만 선언할 시 전 영역에 같이 쓰이는 변수로 선언) 하게되면
+;~ controlclick으로도 할 수 있지만 보기편하려고 Gclick으로 만들었어요.
+
+
+;~ 아래는  Gdip_ImageSearch(pBitmapHayStack,pBitmapNeedle,list,0,0,0,0,60,,1,1)  의 파라미터 설명부분입니다.
+;==================================================================================
+;
+; This function searches for pBitmapNeedle within pBitmapHaystack
+; The returned value is the number of instances found (negative = error)
+;
+; ++ PARAMETERS ++
+;
+; pBitmapHaystack and pBitmapNeedle
+;   Self-explanatory bitmap pointers, are the only required parameters
+;
+; OutputList
+;   ByRef variable to store the list of coordinates where a match was found
+;
+; OuterX1, OuterY1, OuterX2, OuterY2
+;   Equivalent to ImageSearch's X1,Y1,X2,Y2
+;   Default: 0 for all (which searches the whole haystack area)
+;
+; Variation
+;   Just like ImageSearch, a value from 0 to 255
+;   Default: 0
+;
+; Trans
+;   Needle RGB transparent color, should be a numerical value from 0 to 0xFFFFFF
+;   Default: blank (does not use transparency)
+;
+; SearchDirection
+;   Haystack search direction
+;     Vertical preference:
+;       1 = top->left->right->bottom [default]
+;       2 = bottom->left->right->top
+;       3 = bottom->right->left->top
+;       4 = top->right->left->bottom
+;     Horizontal preference:
+;       5 = left->top->bottom->right
+;       6 = left->bottom->top->right
+;       7 = right->bottom->top->left
+;       8 = right->top->bottom->left
+;
+; Instances
+;   Maximum number of instances to find when searching (0 = find all)
+;   Default: 1 (stops after one match is found)
+;
+; LineDelim and CoordDelim
+;   Outer and inner delimiters for the list of coordinates (OutputList)
+;   Defaults: "`n" and ","
+;
+; ++ RETURN VALUES ++
+;
+; -1001 ==> invalid haystack and/or needle bitmap pointer
+; -1002 ==> invalid variation value
+; -1003 ==> X1 and Y1 cannot be negative
+; -1004 ==> unable to lock haystack bitmap bits
+; -1005 ==> unable to lock needle bitmap bits
+; any non-negative value ==> the number of instances found
+;
+;==================================================================================
+;
+;**********************************************************************************
+
+;~ Gdip_ImageSearch(pBitmapHaystack,pBitmapNeedle,ByRef OutputList=""
+;~ ,OuterX1=0,OuterY1=0,OuterX2=0,OuterY2=0,Variation=0,Trans=""
+;~ ,SearchDirection=1,Instances=1,LineDelim="`n",CoordDelim=",") 
+
+
+Gsearchxy(image, byref vx, byref vy) ; byref은 이 값을 위로 올려라 라는 의미죠. 이렇게 하면 vx와 vy의 값을 아래의 과정을 거치면서 함수호출로 받아낼 수 있어요.
+;Gsearch(image)
+{
+
+;winget,hwnd,,ahk_exe Nox.exe, QWidgetClassWindow ;winget을 통해서 hwnd를 얻어와야 사용할 수 있어요. ;hwnd값을 global화 시켜서 사용하시면 편리할겁니다
+pToken:=Gdip_Startup()
+pBitmapHayStack:=Gdip_BitmapFromhwnd(hwnd) ;Haystack 을 특정 창인 hwnd값을 가진 놈의 현재 캡쳐라고 보시면 됩니다. 비활성 창을 스크린샷찍는다 생각하시구
+pBitmapNeedle:=Gdip_CreateBitmapFromFile(image) ;찾을 이미지 파일을 바늘 이라 생각하는 겁니다. 위에서 캡쳐된 화면을 불러오는 image로 쿡쿡 찌른다 생각하세요.
+;Gdip_SetBitmapToClipboard(pBitmapHayStack) ;스크린 캡쳐물을 클립보드로 보냄(그림판에 붙여넣기 가능)
+
+
+
+if Gdip_ImageSearch(pBitmapHayStack,pBitmapNeedle,list,0,0,0,0,60,,1,1) ; 이게 되면
+{ ; 아래처럼 하고 
+StringSplit, LISTArray, LIST, `,
+vx:=LISTArray1 
+vy:=LISTArray2
+;modify_coord(vvx,vvy,vx,vy)
+;msgbox,%vx%,%vy%
+Gdip_DisposeImage(pBitmapHayStack), Gdip_DisposeImage(pBitmapNeedle) ; 초기화
+Gdip_Shutdown(pToken) ; gdip 끄기
+;msgbox, x%vx%, y%vy%
+;guicontrol , , Status_text, Find %image% ;진행 상황을 알려주기 위해서 바꿔주는게 편하더군요.
+;Sleep,100 ;렉 현상을 막기위한 딜레이
+return true ;트루값을 반환해라
+}
+
+else
+{
+
+Gdip_DisposeImage(pBitmapHayStack), Gdip_DisposeImage(pBitmapNeedle)
+Gdip_Shutdown(pToken)
+;guicontrol , , Status_text, fail %image%
+;msgbox false return
+;Sleep,100
+return false
+}
+}
+Gsearchxy_L(image, byref vx, byref vy) ; byref은 이 값을 위로 올려라 라는 의미죠. 이렇게 하면 vx와 vy의 값을 아래의 과정을 거치면서 함수호출로 받아낼 수 있어요.
+;Gsearch(image)
+{
+
+;winget,hwnd,,ahk_exe Nox.exe, QWidgetClassWindow ;winget을 통해서 hwnd를 얻어와야 사용할 수 있어요. ;hwnd값을 global화 시켜서 사용하시면 편리할겁니다
+pToken:=Gdip_Startup()
+pBitmapHayStack:=Gdip_BitmapFromhwnd(hwnd) ;Haystack 을 특정 창인 hwnd값을 가진 놈의 현재 캡쳐라고 보시면 됩니다. 비활성 창을 스크린샷찍는다 생각하시구
+pBitmapNeedle:=Gdip_CreateBitmapFromFile(image) ;찾을 이미지 파일을 바늘 이라 생각하는 겁니다. 위에서 캡쳐된 화면을 불러오는 image로 쿡쿡 찌른다 생각하세요.
+;Gdip_SetBitmapToClipboard(pBitmapHayStack) ;스크린 캡쳐물을 클립보드로 보냄(그림판에 붙여넣기 가능)
+
+
+
+if Gdip_ImageSearch(pBitmapHayStack,pBitmapNeedle,list,0,0,0,0,30,,1,1) ; 이게 되면
+{ ; 아래처럼 하고 
+StringSplit, LISTArray, LIST, `,
+vvx:=LISTArray1 
+vvy:=LISTArray2
+modify_coord(vvx,vvy,vx,vy)
+;msgbox,%vx%,%vy%
+Gdip_DisposeImage(pBitmapHayStack), Gdip_DisposeImage(pBitmapNeedle) ; 초기화
+Gdip_Shutdown(pToken) ; gdip 끄기
+;msgbox, x%vx%, y%vy%
+;guicontrol , , Status_text, Find %image% ;진행 상황을 알려주기 위해서 바꿔주는게 편하더군요.
+;Sleep,100 ;렉 현상을 막기위한 딜레이
+return true ;트루값을 반환해라
+}
+
+else
+{
+
+Gdip_DisposeImage(pBitmapHayStack), Gdip_DisposeImage(pBitmapNeedle)
+Gdip_Shutdown(pToken)
+;guicontrol , , Status_text, fail %image%
+;msgbox false return
+;Sleep,100
+return false
+}
+}
+modify_coord(vvx,vvy,byref vx,byref vy)
+{
+if(WindowBorderWidth!=0 && vvx!=0)
+	vx:=vvx-WindowBorderWidth
+if(WindowCaptionHeight!=0 && vvy!=0 && WindowBorderHeight!=0)
+	vy:=vvy-(WindowCaptionHeight+WindowBorderHeight)
+}
+
+
+Gsearch(image) ; byref은 이 값을 위로 올려라 라는 의미죠. 이렇게 하면 vx와 vy의 값을 아래의 과정을 거치면서 함수호출로 받아낼 수 있어요.
+{
+
+;winget,hwnd,,ahk_exe Nox.exe, QWidgetClassWindow ;winget을 통해서 hwnd를 얻어와야 사용할 수 있어요. ;hwnd값을 global화 시켜서 사용하시면 편리할겁니다
+pToken:=Gdip_Startup()
+pBitmapHayStack:=Gdip_BitmapFromhwnd(hwnd) ;Haystack 을 특정 창인 hwnd값을 가진 놈의 현재 캡쳐라고 보시면 됩니다. 비활성 창을 스크린샷찍는다 생각하시구
+pBitmapNeedle:=Gdip_CreateBitmapFromFile(image) ;찾을 이미지 파일을 바늘 이라 생각하는 겁니다. 위에서 캡쳐된 화면을 불러오는 image로 쿡쿡 찌른다 생각하세요.
+;Gdip_SetBitmapToClipboard(pBitmapHayStack) ;스크린 캡쳐물을 클립보드로 보냄(그림판에 붙여넣기 가능)
+
+
+
+if Gdip_ImageSearch(pBitmapHayStack,pBitmapNeedle,list,0,0,0,0,60,,1,1) ; 이게 되면
+{ ; 아래처럼 하고 
+StringSplit, LISTArray, LIST, `,
+;~ vx:=LISTArray1 
+;~ vy:=LISTArray2 
+Gdip_DisposeImage(pBitmapHayStack), Gdip_DisposeImage(pBitmapNeedle) ; 초기화
+Gdip_Shutdown(pToken) ; gdip 끄기
+;msgbox, x%vx%, y%vy%
+;guicontrol , , Status_text, Find %image% ;진행 상황을 알려주기 위해서 바꿔주는게 편하더군요.
+;Sleep,100 ;렉 현상을 막기위한 딜레이
+return true ;트루값을 반환해라
+}
+
+else
+{
+
+Gdip_DisposeImage(pBitmapHayStack), Gdip_DisposeImage(pBitmapNeedle)
+Gdip_Shutdown(pToken)
+;guicontrol , , Status_text, fail %image%
+;msgbox false return
+;Sleep,100
+return false
+}
+}
+
+
+postmessage_click(vx,vy)
+{
+
+vx:=vx+1
+vy:=vy+1
+;msgbox,%vx%,%vy%
+  
+lparam:=vx|vy<<16
+;msgbox,%lparam%
+;GuiControl, , MyListBox, Clicked:(%vx%,%vy%)||
+;GuiControl, , My_list_2, Clicked : `[ %vx%`,%vy%`]
+postmessage,0x201,1,%lparam%,%g_control%, %g_title%
+sleep,50
+postmessage,0x202,0,%lparam%,%g_control%, %g_title%
+sleep,%clk_delay%
+
+return
+}
+
+postmessage_click_holding(vx,vy,hold_time)
+{
+	;클리크 수정
+  ;vx:=vx+5
+  ;vy:=vy+5
+  
+  lparam:=vx|vy<<16
+  ;msgbox,%lparam%
+  ;GuiControl, , MyListBox, holding:(%vx%,%vy%)||
+  postmessage,0x201,1,%lparam%,%g_control%, %g_title%
+  sleep,%hold_time%
+  postmessage,0x202,0,%lparam%,%g_control%, %g_title%
+  ;GuiControl, , MyListBox, unholding:(%vx%,%vy%)||  
+return
+}
+
+post_Esc()
+{
+;GuiControl, , MyListBox, ESC 키 입력||
+PostMessage, 0x100, 27, 65537, %g_control%, %g_title%
+sleep,70
+PostMessage, 0x101, 27, 65537,%g_control% , %g_title%
+}
+
+
+post_Enter()
+{
+;GuiControl, , MyListBox, ENTER 키 입력||
+PostMessage, 0x100, 0xD, 0x1C0001,%g_control% , %g_title%
+sleep,70
+PostMessage, 0x101, 0xD, 0xC01C0001,%g_control% , %g_title%
+}
+
+find_img_trans_loop(image)
+{
+	trnas_num:=0
+	a_text:=""
+	loop,100
+	{
+		if(find_img_trans(image,trans_num,vx,vy)=true)
+		{
+			;a_text=%a_text%`r`n Trans`[%trans_num%`]인 `[%image%`]를 `[%vx%,%vy%`] 좌표에서 발견
+            postmessage_click(vx,vy)
+            return true
+            
+		}
+        else
+          return false
+		trnas_num++
+	}
+	;%Clipboard%:=%a_text%
+}
+
+find_img_trans(image,trans_num,byref vx,byref vy)
+{
+  pToken:=Gdip_Startup()
+ pBitmapHayStack:=Gdip_BitmapFromhwnd(hwnd)
+ pBitmapNeedle:=Gdip_CreateBitmapFromFile(image)
+  if Gdip_ImageSearch(pBitmapHayStack,pBitmapNeedle,list,0,0,0,0,trans_num,,1,1)
+  {
+  StringSplit, LISTArray, LIST, `,
+
+  vx:=LISTArray1 
+  vy:=LISTArray2
+  
+  Gdip_DisposeImage(pBitmapHayStack), Gdip_DisposeImage(pBitmapNeedle)
+  Gdip_Shutdown(pToken)
+  
+  return true
+  }
+  else
+  {
+  
+  Gdip_Shutdown(pToken)
+
+  return false
+  }
+}
+
+
+postmessage_img_click(img)
+{
+if(gsearchxy(img,vvx,vvy)=true)
+{
+;modify_coord(vx,vy,vvx,vvy)
+;msgbox,%vvx%,%vvy%
+;msgbox,%vvx%,%vvy%
+postmessage_click(vvx,vvy)
+return
+;msgbox,%vvx%,%vvy%
+}
+else
+	return false
+}
+
+postmessage_img_wait_click(img)
+{
+  loop
+  {
+    if(gsearchxy(img,vvx,vvy)=true)
+    {
+      ;modify_coord(vx,vy,vvx,vvy)
+      postmessage_click(vvx,vvy)
+      return
+    }
+    else
+      sleep,80
+    if(a_tickcount>10000)
+      GuiControl, , My_list_2, 이미지`[%img_name%`]찾는 중 %A_tickcount%ms 경과||
+    if(a_tickcount>60000)
+    {
+      GuiControl, , My_list_2, 이미지`[%img_name%`]기다리기 실패||
+      return false
+    }
+  }
+return 
+}
+
+
+/*
+postclick_setted_coord(num)
+{
+COORD_Array := Object()
+filereadline,line_output,coord.txt,num
+StringSplit, COORD_Array, line_output, `,
+
+vx:=COORD_Array1 
+vy:=COORD_Array2
+postmessage_click(vx,vy) ;;example
+}
+*/
+
